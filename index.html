@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Quest Dot Collector</title>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: Arial; }
+    #ui {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-size: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="ui">Score: 0 | Time: 30</div>
+
+<script type="module">
+
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158/build/three.module.js';
+import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.158/examples/jsm/webxr/VRButton.js';
+
+// SCENE
+let scene = new THREE.Scene();
+
+// CAMERA (this = player head)
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(0, 1.6, 3);
+
+// RENDERER
+let renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.enabled = true;
+
+document.body.appendChild(renderer.domElement);
+document.body.appendChild(VRButton.createButton(renderer));
+
+// LIGHT
+let light = new THREE.HemisphereLight(0xffffff, 0x444444);
+scene.add(light);
+
+// DOTS
+let dots = [];
+let totalDots = 10;
+
+for(let i=0;i<totalDots;i++){
+  let geo = new THREE.SphereGeometry(0.2, 16, 16);
+  let mat = new THREE.MeshStandardMaterial({color: 0xff0000});
+  let dot = new THREE.Mesh(geo, mat);
+
+  dot.position.set(
+    (Math.random()*4)-2,
+    Math.random()*2 + 0.5,
+    (Math.random()*-4)
+  );
+
+  scene.add(dot);
+  dots.push(dot);
+}
+
+// UI
+let score = 0;
+let time = 30;
+let ui = document.getElementById("ui");
+
+// TIMER
+let timer = setInterval(()=>{
+  time--;
+  updateUI();
+
+  if(time <= 0){
+    endGame("GAME OVER");
+  }
+},1000);
+
+function updateUI(){
+  ui.innerHTML = `Score: ${score} | Time: ${time}`;
+}
+
+// COLLISION (HEAD BASED)
+function checkCollision(){
+  dots.forEach(dot=>{
+    if(dot.visible){
+      let dist = camera.position.distanceTo(dot.position);
+      if(dist < 0.5){
+        dot.visible = false;
+        score++;
+        updateUI();
+
+        if(score === totalDots){
+          endGame("YOU WIN");
+        }
+      }
+    }
+  });
+}
+
+// END GAME
+function endGame(text){
+  clearInterval(timer);
+  ui.innerHTML = text + " | Refresh to restart";
+}
+
+// LOOP
+renderer.setAnimationLoop(()=>{
+  checkCollision();
+  renderer.render(scene, camera);
+});
+
+</script>
+
+</body>
+</html>
